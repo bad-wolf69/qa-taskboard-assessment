@@ -13,6 +13,7 @@ until node -e "require('net').createConnection({host:'db',port:5432}).on('connec
   sleep 1
 done
 
+npm install
 npx prisma migrate deploy || true
 npx prisma generate || true
 npm run db:seed || true
