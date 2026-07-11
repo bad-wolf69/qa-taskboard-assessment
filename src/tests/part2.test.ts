@@ -82,12 +82,11 @@ describe("task access control", () => {
     });
     expect(res.status).toBe(201);
   });
-});
 
-// Additional coverage for findings in BUGS.md not exercised above.
-// BUGS.md #4 (login form pre-fills live credentials) is a UI/component-level
-// issue and isn't exercised by this API integration file.
-describe("task access control - Additional Checks", () => {
+  // Additional tests — coverage for findings in BUGS.md not exercised above.
+  // BUGS.md #4 (login form pre-fills live credentials) is a UI/component-level
+  // issue and isn't exercised by this API integration file.
+
   // Test D
   it("task search does not error on an unescaped quote in q", async () => {
     const res = await fetch(
