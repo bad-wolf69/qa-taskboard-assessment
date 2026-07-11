@@ -67,7 +67,7 @@ describe("task access control", () => {
       },
       body: JSON.stringify({ title: "viewer create attempt" }),
     });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
   });
 
   // Test C
@@ -81,5 +81,45 @@ describe("task access control", () => {
       body: JSON.stringify({ title: "member create — baseline" }),
     });
     expect(res.status).toBe(201);
+  });
+});
+
+// Additional coverage for findings in BUGS.md not exercised above.
+// BUGS.md #4 (login form pre-fills live credentials) is a UI/component-level
+// issue and isn't exercised by this API integration file.
+describe("task access control - Additional Checks", () => {
+  // Test D
+  it("task search does not error on an unescaped quote in q", async () => {
+    const res = await fetch(
+      `${BASE_URL}/api/projects/${projectId}/tasks?q=${encodeURIComponent("x' OR '1'='1")}`,
+      { headers: { Authorization: `Bearer ${tokens.meera}` } },
+    );
+    expect(res.status).not.toBe(500);
+  });
+
+  // Test E
+  it("task search does not leak user emails or password hashes via a union payload", async () => {
+    const payload =
+      "nonexistent' UNION SELECT id, project_id, email, password_hash, 'x', null, null, 0, created_at, updated_at FROM users -- ";
+    const res = await fetch(
+      `${BASE_URL}/api/projects/${projectId}/tasks?q=${encodeURIComponent(payload)}`,
+      { headers: { Authorization: `Bearer ${tokens.meera}` } },
+    );
+    const body = await res.text();
+    expect(body).not.toMatch(/@taskboard\.dev|@example\.com/);
+  });
+
+  // Test F
+  it("a non-member cannot update a task in a project they don't belong to", async () => {
+    const linaToken = await login("lina@example.com"); // member of Onboarding only, not Q3 Launch
+    const res = await fetch(`${BASE_URL}/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${linaToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title: "non-member update attempt" }),
+    });
+    expect(res.status).toBe(403);
   });
 });
